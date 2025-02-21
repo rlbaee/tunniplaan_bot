@@ -1,5 +1,5 @@
-# Txt files
-*.txt
+# Config files
+config.py
 
 # Virtual environment
 venv/
