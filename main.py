@@ -1,14 +1,24 @@
 # Imports
-from service.bot import Bot
 from config import API_KEY
+import logging
+import requests
+import beautifulsoup4 as bs4
+from telegram import Update
+from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler
 
-
-
-def main():
-    bot = Bot(API_KEY, )
-    bot.start_bot()
-
-
-if __name__ == "__main__":
-    main()
     
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
+
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await context.bot.send_message(chat_id=update.effective_chat.id, text="I'm a bot, please talk to me!")
+
+if __name__ == '__main__':
+    application = ApplicationBuilder().token(API_KEY).build()
+    
+    start_handler = CommandHandler('start', start)
+    application.add_handler(start_handler)
+    
+    application.run_polling()    
