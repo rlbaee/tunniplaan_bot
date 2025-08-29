@@ -54,11 +54,11 @@ def get_schedule(date_str, url):
         # Handle rooms
         rooms = event.get("rooms", [])
         if rooms:
-            room = ", ".join([f"{r.get('roomCode', '')} ({r.get('buildingCode', '')})" for r in rooms])
+            room = ", ".join([f"{r.get('roomCode', '')} ,{r.get('buildingCode', '')}" for r in rooms])
         else:
             room = "—"
 
-        text += f"*{start}-{end}: {subject}*\nУчитель: {teacher}\nКласс: {room}\n{group}\n\n"
+        text += f"*{start}-{end}: {subject}*\nУчитель: {teacher}\nКласс: {room}\nГруппы: {group}\n\n"
 
     if not events:
         text += "Расписание не найдено."
