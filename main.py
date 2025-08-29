@@ -2,12 +2,12 @@
 import logging
 import requests
 import os
-from bs4 import BeautifulSoup
+from datetime import date, datetime, timedelta
 from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler
-from datetime import date, datetime, timedelta
-
-# url = 'https://tahveltp.edu.ee/#/schoolBoard/8/group/a01d68d7-7bff-497b-b1ee-4f04e258d9fb'
+from fastapi import FastAPI
+import asyncio
+import uvicorn
 
 API_KEY = os.environ.get("API_KEY")
 url = "https://tahveltp.edu.ee/hois_back/schoolBoard/8/timetableByGroup"
@@ -16,7 +16,7 @@ params = {
     "studentGroupUuid": "a01d68d7-7bff-497b-b1ee-4f04e258d9fb"
 }
 
-
+# --- Your get_schedule function here ---
 def get_schedule(date_str, url):
     response = requests.get(url, params=params)
     data = response.json()
@@ -29,7 +29,6 @@ def get_schedule(date_str, url):
 
     events = [e for e in data.get("timetableEvents", []) if e.get("date", "")[:10] == date_str]
 
-    # Sort by start time
     events.sort(key=lambda x: x.get("timeStart", ""))
 
     for event in events:
@@ -37,26 +36,14 @@ def get_schedule(date_str, url):
         start = event.get("timeStart") or "—"
         end = event.get("timeEnd") or "—"
         
-        # Handle groups
         groups = event.get("studentGroups", [])
-        if groups:
-            group = ", ".join([g.get("code", "") for g in groups])
-        else:
-            group = "—"
+        group = ", ".join([g.get("code", "") for g in groups]) if groups else "—"
 
-        # Handle teachers
         teachers = event.get("teachers", [])
-        if teachers:
-            teacher = ", ".join([f"{t.get('firstname', '')} {t.get('lastname', '')}" for t in teachers])
-        else:
-            teacher = "—"
+        teacher = ", ".join([f"{t.get('firstname', '')} {t.get('lastname', '')}" for t in teachers]) if teachers else "—"
 
-        # Handle rooms
         rooms = event.get("rooms", [])
-        if rooms:
-            room = ", ".join([f"{r.get('roomCode', '')}, {r.get('buildingCode', '')}" for r in rooms])
-        else:
-            room = "—"
+        room = ", ".join([f"{r.get('roomCode', '')}, {r.get('buildingCode', '')}" for r in rooms]) if rooms else "—"
 
         text += f"*{start}-{end}: {subject}*\nУчитель: {teacher}\nКласс: {room}\nГруппы: {group}\n\n"
 
@@ -65,15 +52,7 @@ def get_schedule(date_str, url):
 
     return text
 
-
-        
-    
-
-logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INFO
-)
-
+# --- Telegram bot handlers ---
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(chat_id=update.effective_chat.id, text="Используй командную палитру для получения расписания")
 
@@ -97,7 +76,6 @@ async def custom(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def week(update: Update, context: ContextTypes.DEFAULT_TYPE):
     today_date = date.today()
-
     start_of_week = today_date - timedelta(days=today_date.weekday())
     
     for i in range(5):
@@ -105,27 +83,26 @@ async def week(update: Update, context: ContextTypes.DEFAULT_TYPE):
         schedule_text = get_schedule(day.isoformat(), url)
         await context.bot.send_message(chat_id=update.effective_chat.id, text=schedule_text, parse_mode="Markdown")
 
-    
+# --- FastAPI setup for Render ---
+app = FastAPI()
 
-if __name__ == '__main__':
+@app.on_event("startup")
+async def startup_event():
+    # Start Telegram bot in background
     application = ApplicationBuilder().token(API_KEY).build()
     
-    start_handler = CommandHandler('start', start)
-    application.add_handler(start_handler)
+    application.add_handler(CommandHandler('start', start))
+    application.add_handler(CommandHandler('today', today))
+    application.add_handler(CommandHandler('tomorrow', tomorrow))
+    application.add_handler(CommandHandler('custom', custom))
+    application.add_handler(CommandHandler('week', week))
 
-    today_handler = CommandHandler('today', today)
-    application.add_handler(today_handler)
+    asyncio.create_task(application.run_polling())
 
-    tomorrow_handler = CommandHandler('tomorrow', tomorrow)
-    application.add_handler(tomorrow_handler)
+@app.get("/ping")
+def ping():
+    return {"status": "alive"}
 
-    custom_handler = CommandHandler('custom', custom)
-    application.add_handler(custom_handler)
-
-    week_handler = CommandHandler('week', week)
-    application.add_handler(week_handler)
-
-    
-    application.run_polling()    
-
-get_schedule(date, url)
+# --- Run Uvicorn for Render ---
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 8000)))
