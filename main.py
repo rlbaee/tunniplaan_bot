@@ -1,7 +1,7 @@
 # Imports
-from config import API_KEY
 import logging
 import requests
+import os
 from bs4 import BeautifulSoup
 from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler
@@ -9,6 +9,7 @@ from datetime import date, datetime, timedelta
 
 # url = 'https://tahveltp.edu.ee/#/schoolBoard/8/group/a01d68d7-7bff-497b-b1ee-4f04e258d9fb'
 
+API_KEY = os.environ.get("API_KEY")
 url = "https://tahveltp.edu.ee/hois_back/schoolBoard/8/timetableByGroup"
 params = {
     "lang": "ET",
