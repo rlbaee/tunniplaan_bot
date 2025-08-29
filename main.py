@@ -36,6 +36,7 @@ def get_schedule(date_str, url):
         subject = event.get("nameEt") or event.get("nameEn") or "—"
         start = event.get("timeStart") or "—"
         end = event.get("timeEnd") or "—"
+        group = event.get("studentGroups", [])
 
         # Handle teachers
         teachers = event.get("teachers", [])
