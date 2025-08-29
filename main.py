@@ -52,7 +52,7 @@ def get_schedule(date_str, url):
         else:
             room = "—"
 
-        text += f"*{start}-{end}: {subject}*\nУчитель: {teacher}\nКласс: {room}\n\n"
+        text += f"*{start}-{end}: {subject}*\nУчитель: {teacher}\nКласс: {room}\n{group}\n\n"
 
     if not events:
         text += "Расписание не найдено."
